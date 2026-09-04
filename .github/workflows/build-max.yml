@@ -1,0 +1,46 @@
+name: Build GIFT PRINTER v3 MAX
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "GiftPrinterAndroid_v3_MAX.zip"
+      - ".github/workflows/build-max.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Extract project
+        run: |
+          unzip -q GiftPrinterAndroid_v3_MAX.zip -d extracted
+          if [ -d extracted/GiftPrinterAndroid ]; then
+            mv extracted/GiftPrinterAndroid/* .
+          else
+            cp -r extracted/* .
+          fi
+
+      - name: Fix Java/Kotlin target
+        run: |
+          sed -i '/kotlinOptions {/,/}/s/jvmTarget *= *.*/jvmTarget = "17"/' app/build.gradle 2>/dev/null || true
+
+      - name: Build APK
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: GIFT-PRINTER-v3-MAX-APK
+          path: "**/build/outputs/apk/debug/*.apk"
