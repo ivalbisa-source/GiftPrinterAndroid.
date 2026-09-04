@@ -1,0 +1,43 @@
+name: Build Gift Printer APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download repository
+        uses: actions/checkout@v4
+
+      - name: Find and extract Android project
+        run: |
+          mkdir project
+          ZIP=$(find . -maxdepth 2 -type f -name "*.zip" | head -n 1)
+          echo "ZIP ditemukan: $ZIP"
+          unzip -q "$ZIP" -d project
+          echo "Isi project:"
+          find project -maxdepth 3 -type f | head -100
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Build APK
+        working-directory: project
+        run: |
+          gradle :app:assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: GiftPrinter-v3-APK
+          path: project/app/build/outputs/apk/debug/app-debug.apk
