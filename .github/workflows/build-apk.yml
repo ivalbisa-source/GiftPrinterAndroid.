@@ -11,14 +11,39 @@ jobs:
       - name: Download repository
         uses: actions/checkout@v4
 
-      - name: Find and extract Android project
+      - name: Extract Android project
         run: |
           mkdir project
           ZIP=$(find . -maxdepth 2 -type f -name "*.zip" | head -n 1)
-          echo "ZIP ditemukan: $ZIP"
           unzip -q "$ZIP" -d project
-          echo "Isi project:"
-          find project -maxdepth 3 -type f | head -100
+
+      - name: Fix Java and Kotlin target
+        working-directory: project
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("app/build.gradle.kts")
+          s = p.read_text()
+
+          marker = 'targetSdk = 35'
+          addition = '''
+          
+              compileOptions {
+                  sourceCompatibility = JavaVersion.VERSION_17
+                  targetCompatibility = JavaVersion.VERSION_17
+              }
+
+              kotlinOptions {
+                  jvmTarget = "17"
+              }
+          '''
+
+          if 'jvmTarget = "17"' not in s:
+              s = s.replace(marker, marker + addition)
+
+          p.write_text(s)
+          PY
 
       - name: Setup Java
         uses: actions/setup-java@v4
